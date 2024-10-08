@@ -3061,13 +3061,13 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
 
             # print("INFO: Saving configuration to output journal.")
             if (full_output == 1 and aStep <= steps - 1) or (full_output == 0 and aStep == steps - 1):
-                journal.add_accepted_parameters(copy.deepcopy(accepted_parameters))
-                journal.add_distances(copy.deepcopy(accepted_dist))
-                journal.add_weights(copy.deepcopy(accepted_weights))
-                journal.add_ESS_estimate(accepted_weights)
+                journal.add_accepted_parameters(copy.deepcopy(alpha_accepted_parameters))
+                journal.add_distances(copy.deepcopy(alpha_accepted_dist))
+                journal.add_weights(copy.deepcopy(alpha_accepted_weights))
+                journal.add_ESS_estimate(alpha_accepted_weights)
                 self.accepted_parameters_manager.update_broadcast(self.backend,
-                                                                  accepted_parameters=accepted_parameters,
-                                                                  accepted_weights=accepted_weights)
+                                                                  accepted_parameters=alpha_accepted_parameters,
+                                                                  accepted_weights=alpha_accepted_weights)
                 names_and_parameters = self._get_names_and_parameters()
                 journal.add_user_parameters(names_and_parameters)
                 journal.number_of_simulations.append(self.simulation_counter)
