@@ -3035,6 +3035,7 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 prob_acceptance = sum(new_dist < epsilon[-1]) / len(new_dist)
                 # Compute epsilon
                 epsilon.append(np.percentile(accepted_dist, alpha * 100))
+                if not np.isfinite(epsilon[-1]): epsilon[-1] = sorted(accepted_dist)[np.floor(alpha*len(accepted_dist))] # Probably not needed but: np.percentile([0,1,np.inf], 0.5) = np.nan so having no better pars could give np.nan
 
             # 2: Update alpha_parameters, alpha_dist and alpha_weights
             index_alpha = accepted_dist < epsilon[-1]
@@ -3089,7 +3090,8 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             if bc != None:
                 bc.unpersist
                 # bc.destroy
-            self.accepted_dist_bds = self.backend.broadcast(accepted_dist)
+
+        self.accepted_dist_bds = self.backend.broadcast(accepted_dist)
 
     # define helper functions for map step
     def _accept_parameter(self, rng, npc=None):
@@ -3137,14 +3139,18 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             counter += 1
             distance = self.distance.distance(self.accepted_parameters_manager.observations_bds.value(), y_sim)
 
-            prior_prob = self.pdf_of_prior(self.model, perturbation_output[1])
-            denominator = 0.0
-            for i in range(len(self.accepted_parameters_manager.accepted_weights_bds.value())):
-                pdf_value = self.kernel.pdf(mapping_for_kernels, self.accepted_parameters_manager,
-                                            self.accepted_parameters_manager.accepted_parameters_bds.value()[i],
-                                            perturbation_output[1])
-                denominator += self.accepted_parameters_manager.accepted_weights_bds.value()[i, 0] * pdf_value
-            weight = 1.0 * prior_prob / denominator
+            if distance <= max(self.accepted_dist_bds.value()):
+                prior_prob = self.pdf_of_prior(self.model, perturbation_output[1])
+                denominator = 0.0
+                for i in range(len(self.accepted_parameters_manager.accepted_weights_bds.value())):
+                    pdf_value = self.kernel.pdf(mapping_for_kernels, self.accepted_parameters_manager,
+                                                self.accepted_parameters_manager.accepted_parameters_bds.value()[i],
+                                                perturbation_output[1])
+                    denominator += self.accepted_parameters_manager.accepted_weights_bds.value()[i, 0] * pdf_value
+                weight = 1.0 * prior_prob / denominator
+            else:
+                print(f'Skipping calculating weight because distance = {distance} > {max(self.accepted_dist_bds.value())}')
+                weight = np.nan
 
         return self.get_parameters(self.model), distance, weight, counter
 
