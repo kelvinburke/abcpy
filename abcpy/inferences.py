@@ -2823,6 +2823,8 @@ class RSMCABC(BaseDiscrepancy, InferenceMethod):
         return accepted_cov_mats
 
 
+import sciris as sc
+
 class APMCABC(BaseDiscrepancy, InferenceMethod):
     """This class implements Adaptive Population Monte Carlo Approximate Bayesian computation of
     M. Lenormand et al. [1].
@@ -3140,13 +3142,21 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             distance = self.distance.distance(self.accepted_parameters_manager.observations_bds.value(), y_sim)
 
             if distance <= max(self.accepted_dist_bds.value()):
+                start = sc.tic()
                 prior_prob = self.pdf_of_prior(self.model, perturbation_output[1])
                 denominator = 0.0
                 for i in range(len(self.accepted_parameters_manager.accepted_weights_bds.value())):
                     pdf_value = self.kernel.pdf(mapping_for_kernels, self.accepted_parameters_manager,
                                                 self.accepted_parameters_manager.accepted_parameters_bds.value()[i],
                                                 perturbation_output[1])
+                    if i == index[0]:
+                        print('this perturb ', index[0], pdf_value, self.accepted_parameters_manager.accepted_weights_bds.value()[i, 0], self.accepted_parameters_manager.accepted_weights_bds.value()[i, 0] * pdf_value)
                     denominator += self.accepted_parameters_manager.accepted_weights_bds.value()[i, 0] * pdf_value
+                if denominator == 0 or not np.isfinite(denominator):
+                    print('WARNIKNG', index[0], denominator, perturbation_output[1])
+                denominator += np.finfo(np.float64).tiny
+                sc.toc(start=start,
+                       label=f'time for calculating {len(self.accepted_parameters_manager.accepted_weights_bds.value())} pdfs for weight')
                 weight = 1.0 * prior_prob / denominator
             else:
                 print(f'Skipping calculating weight because distance = {distance} > {max(self.accepted_dist_bds.value())}')
