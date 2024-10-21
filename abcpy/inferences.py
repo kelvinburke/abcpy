@@ -3042,6 +3042,9 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 for j,debug_info in enumerate(accepted_debug):
                     if 'id' not in debug_info:
                         debug_info['id'] = (aStep, j)
+                for j,debug_info in enumerate(accepted_debug):
+                    if 'prev_id' not in debug_info:
+                        debug_info['prev_id'] = accepted_debug[debug_info['index']]['id']
                 # Compute acceptance probability
                 prob_acceptance = sum(new_dist < epsilon[-1]) / len(new_dist)
                 # Compute epsilon
@@ -3204,7 +3207,10 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 print(f'Skipping calculating weight because distance = {distance} > {max(self.accepted_dist_bds.value())}')
                 weight = np.nan
 
-            debug_info.update(dict(index=index[0], distance=distance, weight=weight))
+            debug_info.update(dict(index=index[0], distance=distance, weight=weight,
+                                   prev_pars=self.accepted_parameters_manager.accepted_parameters_bds.value()[index[0]],
+                                   new_pars=perturbation_output[1],
+                                   ))
 
 
 
