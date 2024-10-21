@@ -3062,6 +3062,14 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 if 'normalized_weight' not in debug_info: debug_info['normalized_weight'] = []
                 debug_info['normalized_weight'].append(weight)
 
+            if (full_output >= 1):
+                if 'debug_info' not in journal.configuration: journal.configuration['debug_info'] = []
+
+                journal.configuration['debug_info'].append(alpha_accepted_debug)
+
+                if path_to_save_journal is not None:  # save journal
+                    journal.save(path_to_save_journal+'.pre.jnl')
+
             # 3: calculate covariance
             self.logger.info("Calculating covariance matrix")
             self.accepted_parameters_manager.update_broadcast(self.backend,
@@ -3092,9 +3100,9 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 journal.add_user_parameters(names_and_parameters)
                 journal.number_of_simulations.append(self.simulation_counter)
 
-                if 'debug_info' not in journal.configuration:
-                    journal.configuration['debug_info'] = []
-                journal.configuration['debug_info'].append(alpha_accepted_debug)
+                # if 'debug_info' not in journal.configuration:
+                #     journal.configuration['debug_info'] = []
+                # journal.configuration['debug_info'].append(alpha_accepted_debug)
 
             # 4: Check probability of acceptance lower than acceptance_cutoff
             if prob_acceptance < acceptance_cutoff:
