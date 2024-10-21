@@ -3196,8 +3196,8 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 weight = 1.0 * prior_prob / denominator
 
                 debug_info.update(dict(prior_prob=prior_prob, denominator=denominator, denom_minus_tiny=denominator - np.finfo(np.float64).tiny,
-                                       denom_components=denom_components, pdfs=pdfs,
-                                       prev_weights=np.array(self.accepted_parameters_manager.accepted_weights_bds.value())[:,0],
+                                       # denom_components=denom_components, pdfs=pdfs,
+                                       # prev_weights=np.array(self.accepted_parameters_manager.accepted_weights_bds.value())[:,0],
                                        denom_index=denom_components[index[0]], pdf_index=pdfs[index[0]], weight_index=self.accepted_parameters_manager.accepted_weights_bds.value()[index[0], 0]))
 
             else:
