@@ -3030,6 +3030,8 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 for j,debug_info in enumerate(accepted_debug):
                     if 'id' not in debug_info:
                         debug_info['id'] = (aStep, j)
+                    if 'prev_id' not in debug_info:
+                        debug_info['prev_id'] = 'prior'
                 # Compute acceptance probability
                 prob_acceptance = 1
                 # Compute epsilon
