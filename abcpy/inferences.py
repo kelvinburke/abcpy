@@ -3066,8 +3066,10 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
 
             if (full_output >= 1):
                 if 'debug_info' not in journal.configuration: journal.configuration['debug_info'] = []
+                if 'covs' not in journal.configuration: journal.configuration['covs'] = []
 
                 journal.configuration['kernel'] = self.kernel
+                journal.configuration['covs'].append(accepted_cov_mats)
 
                 journal.configuration['debug_info'].append(alpha_accepted_debug)
 
