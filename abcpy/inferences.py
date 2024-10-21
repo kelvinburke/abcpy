@@ -3012,10 +3012,11 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             self.logger.info("Resampling parameters")
             params_and_dist_weights_pds = self.backend.map(self._accept_parameter, rng_pds)
             params_and_dist_weights = self.backend.collect(params_and_dist_weights_pds)
-            new_parameters, new_dist, new_weights, counter = [list(t) for t in zip(*params_and_dist_weights)]
+            new_parameters, new_dist, new_weights, counter, new_debug_infos = [list(t) for t in zip(*params_and_dist_weights)]
             new_parameters = np.array(new_parameters)
             new_dist = np.array(new_dist)
             new_weights = np.array(new_weights).reshape(n_additional_samples, 1)
+            new_debug_infos = np.array(new_debug_infos)
 
             for count in counter:
                 self.simulation_counter += count
@@ -3025,6 +3026,10 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 accepted_parameters = new_parameters
                 accepted_dist = new_dist
                 accepted_weights = new_weights
+                accepted_debug = new_debug_infos
+                for j,debug_info in enumerate(accepted_debug):
+                    if 'id' not in debug_info:
+                        debug_info['id'] = (aStep, j)
                 # Compute acceptance probability
                 prob_acceptance = 1
                 # Compute epsilon
@@ -3033,6 +3038,10 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 accepted_parameters = np.concatenate((alpha_accepted_parameters, new_parameters))
                 accepted_dist = np.concatenate((alpha_accepted_dist, new_dist))
                 accepted_weights = np.concatenate((alpha_accepted_weights, new_weights))
+                accepted_debug = np.concatenate((alpha_accepted_debug, new_debug_infos))
+                for j,debug_info in enumerate(accepted_debug):
+                    if 'id' not in debug_info:
+                        debug_info['id'] = (aStep, j)
                 # Compute acceptance probability
                 prob_acceptance = sum(new_dist < epsilon[-1]) / len(new_dist)
                 # Compute epsilon
@@ -3044,6 +3053,11 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             alpha_accepted_parameters = accepted_parameters[index_alpha, :]
             alpha_accepted_weights = accepted_weights[index_alpha] / sum(accepted_weights[index_alpha])
             alpha_accepted_dist = accepted_dist[index_alpha]
+            alpha_accepted_debug = accepted_debug[index_alpha]
+
+            for j, (debug_info, weight) in enumerate(zip(alpha_accepted_debug, alpha_accepted_weights)):
+                if 'normalized_weight' not in debug_info: debug_info['normalized_weight'] = []
+                debug_info['normalized_weight'].append(weight)
 
             # 3: calculate covariance
             self.logger.info("Calculating covariance matrix")
@@ -3063,7 +3077,7 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             # accepted_cov_mats = [covFactor*cov_mat for cov_mat in accepted_cov_mats]
 
             # print("INFO: Saving configuration to output journal.")
-            if (full_output == 1 and aStep <= steps - 1) or (full_output == 0 and aStep == steps - 1):
+            if (full_output >= 1 and aStep <= steps - 1) or (full_output == 0 and aStep == steps - 1):
                 journal.add_accepted_parameters(copy.deepcopy(alpha_accepted_parameters))
                 journal.add_distances(copy.deepcopy(alpha_accepted_dist))
                 journal.add_weights(copy.deepcopy(alpha_accepted_weights))
@@ -3074,6 +3088,10 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 names_and_parameters = self._get_names_and_parameters()
                 journal.add_user_parameters(names_and_parameters)
                 journal.number_of_simulations.append(self.simulation_counter)
+
+                if 'debug_info' not in journal.configuration:
+                    journal.configuration['debug_info'] = []
+                journal.configuration['debug_info'].append(alpha_accepted_debug)
 
             # 4: Check probability of acceptance lower than acceptance_cutoff
             if prob_acceptance < acceptance_cutoff:
@@ -3120,6 +3138,8 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
 
         counter = 0
 
+        debug_info = {}
+
         if self.accepted_parameters_manager.accepted_parameters_bds is None:
             self.sample_from_prior(rng=rng)
             y_sim = self.simulate(self.n_samples_per_param, rng=rng, npc=npc)
@@ -3127,7 +3147,10 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             distance = self.distance.distance(self.accepted_parameters_manager.observations_bds.value(), y_sim)
 
             weight = 1.0
+
+            debug_info.update(dict(distance=distance, weight=weight))
         else:
+            print('CHOOSING FROM ', len(self.accepted_parameters_manager.accepted_weights_bds.value()))
             index = rng.choice(len(self.accepted_parameters_manager.accepted_weights_bds.value()), size=1,
                                p=self.accepted_parameters_manager.accepted_weights_bds.value().reshape(-1))
             # truncate the normal to the bounds of parameter space of the model
@@ -3141,28 +3164,53 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             counter += 1
             distance = self.distance.distance(self.accepted_parameters_manager.observations_bds.value(), y_sim)
 
+
             if distance <= max(self.accepted_dist_bds.value()):
                 start = sc.tic()
                 prior_prob = self.pdf_of_prior(self.model, perturbation_output[1])
+
+                N = len(self.accepted_parameters_manager.accepted_weights_bds.value())
+                pdfs = np.zeros(N)
+                denom_components = np.zeros(N)
+
                 denominator = 0.0
                 for i in range(len(self.accepted_parameters_manager.accepted_weights_bds.value())):
                     pdf_value = self.kernel.pdf(mapping_for_kernels, self.accepted_parameters_manager,
                                                 self.accepted_parameters_manager.accepted_parameters_bds.value()[i],
                                                 perturbation_output[1])
+
                     if i == index[0]:
                         print('this perturb ', index[0], pdf_value, self.accepted_parameters_manager.accepted_weights_bds.value()[i, 0], self.accepted_parameters_manager.accepted_weights_bds.value()[i, 0] * pdf_value)
+
                     denominator += self.accepted_parameters_manager.accepted_weights_bds.value()[i, 0] * pdf_value
+                    pdfs[i] = pdf_value
+                    denom_components[i] = self.accepted_parameters_manager.accepted_weights_bds.value()[i, 0] * pdf_value
+
                 if denominator == 0 or not np.isfinite(denominator):
                     print('WARNIKNG', index[0], denominator, perturbation_output[1])
+
                 denominator += np.finfo(np.float64).tiny
                 sc.toc(start=start,
                        label=f'time for calculating {len(self.accepted_parameters_manager.accepted_weights_bds.value())} pdfs for weight')
+
                 weight = 1.0 * prior_prob / denominator
+
+                debug_info.update(dict(prior_prob=prior_prob, denominator=denominator, denom_minus_tiny=denominator - np.finfo(np.float64).tiny,
+                                       denom_components=denom_components, pdfs=pdfs,
+                                       prev_weights=np.array(self.accepted_parameters_manager.accepted_weights_bds.value())[:,0],
+                                       denom_index=denom_components[index[0]], pdf_index=pdfs[index[0]], weight_index=self.accepted_parameters_manager.accepted_weights_bds.value()[index[0], 0]))
+
             else:
                 print(f'Skipping calculating weight because distance = {distance} > {max(self.accepted_dist_bds.value())}')
                 weight = np.nan
 
-        return self.get_parameters(self.model), distance, weight, counter
+            debug_info.update(dict(index=index[0], distance=distance, weight=weight))
+
+
+
+
+
+        return self.get_parameters(self.model), distance, weight, counter, debug_info
 
     def _compute_accepted_cov_mats(self, covFactor, new_cov_mats):
         """
