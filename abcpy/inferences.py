@@ -3067,6 +3067,8 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             if (full_output >= 1):
                 if 'debug_info' not in journal.configuration: journal.configuration['debug_info'] = []
 
+                journal.configuration['kernel'] = self.kernel
+
                 journal.configuration['debug_info'].append(alpha_accepted_debug)
 
                 if path_to_save_journal is not None:  # save journal
