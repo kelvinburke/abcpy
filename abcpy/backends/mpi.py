@@ -401,7 +401,7 @@ class BackendMPIScheduler(Backend):
         self.__command_teams(self.OP_FINISH, None)
 
         # Finalize the connection because the teams should have finished.
-        MPI.Finalize()
+        if MPI is not None: MPI.Finalize()
         self.finalized = True
 
 
