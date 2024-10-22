@@ -3222,8 +3222,8 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 weight = np.nan
 
             debug_info.update(dict(index=index[0], distance=distance, weight=weight,
-                                   prev_pars=self.accepted_parameters_manager.accepted_parameters_bds.value()[index[0]],
-                                   new_pars=perturbation_output[1],
+                                   # prev_pars=self.accepted_parameters_manager.accepted_parameters_bds.value()[index[0]],
+                                   # new_pars=perturbation_output[1],
                                    ))
 
 
