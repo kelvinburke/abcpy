@@ -3027,11 +3027,11 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 accepted_dist = new_dist
                 accepted_weights = new_weights
                 accepted_debug = new_debug_infos
-                for j,debug_info in enumerate(accepted_debug):
-                    if 'id' not in debug_info:
-                        debug_info['id'] = (aStep, j)
-                    if 'prev_id' not in debug_info:
-                        debug_info['prev_id'] = 'prior'
+                # for j,debug_info in enumerate(accepted_debug):
+                #     if 'id' not in debug_info:
+                #         debug_info['id'] = (aStep, j)
+                #     if 'prev_id' not in debug_info:
+                #         debug_info['prev_id'] = 'prior'
                 # Compute acceptance probability
                 prob_acceptance = 1
                 # Compute epsilon
@@ -3041,12 +3041,12 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                 accepted_dist = np.concatenate((alpha_accepted_dist, new_dist))
                 accepted_weights = np.concatenate((alpha_accepted_weights, new_weights))
                 accepted_debug = np.concatenate((alpha_accepted_debug, new_debug_infos))
-                for j,debug_info in enumerate(accepted_debug):
-                    if 'id' not in debug_info:
-                        debug_info['id'] = (aStep, j)
-                for j,debug_info in enumerate(accepted_debug):
-                    if 'prev_id' not in debug_info:
-                        debug_info['prev_id'] = accepted_debug[debug_info['index']]['id']
+                # for j,debug_info in enumerate(accepted_debug):
+                #     if 'id' not in debug_info:
+                #         debug_info['id'] = (aStep, j)
+                # for j,debug_info in enumerate(accepted_debug):
+                #     if 'prev_id' not in debug_info:
+                #         debug_info['prev_id'] = accepted_debug[debug_info['index']]['id']
                 # Compute acceptance probability
                 prob_acceptance = sum(new_dist < epsilon[-1]) / len(new_dist)
                 # Compute epsilon
@@ -3060,21 +3060,21 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
             alpha_accepted_dist = accepted_dist[index_alpha]
             alpha_accepted_debug = accepted_debug[index_alpha]
 
-            for j, (debug_info, weight) in enumerate(zip(alpha_accepted_debug, alpha_accepted_weights)):
-                if 'normalized_weight' not in debug_info: debug_info['normalized_weight'] = []
-                debug_info['normalized_weight'].append(weight)
-
-            if (full_output >= 1):
-                if 'debug_info' not in journal.configuration: journal.configuration['debug_info'] = []
-                if 'covs' not in journal.configuration: journal.configuration['covs'] = []
-
-                journal.configuration['kernel'] = self.kernel
-                journal.configuration['covs'].append(accepted_cov_mats)
-
-                journal.configuration['debug_info'].append(alpha_accepted_debug)
-
-                if path_to_save_journal is not None:  # save journal
-                    journal.save(path_to_save_journal+'.pre.jnl')
+            # for j, (debug_info, weight) in enumerate(zip(alpha_accepted_debug, alpha_accepted_weights)):
+            #     if 'normalized_weight' not in debug_info: debug_info['normalized_weight'] = []
+            #     debug_info['normalized_weight'].append(weight)
+            #
+            # if (full_output >= 1):
+            #     if 'debug_info' not in journal.configuration: journal.configuration['debug_info'] = []
+            #     if 'covs' not in journal.configuration: journal.configuration['covs'] = []
+            #
+            #     journal.configuration['kernel'] = self.kernel
+            #     journal.configuration['covs'].append(accepted_cov_mats)
+            #
+            #     journal.configuration['debug_info'].append(alpha_accepted_debug)
+            #
+            #     if path_to_save_journal is not None:  # save journal
+            #         journal.save(path_to_save_journal+'.pre.jnl')
 
             # 3: calculate covariance
             self.logger.info("Calculating covariance matrix")
@@ -3226,10 +3226,7 @@ class APMCABC(BaseDiscrepancy, InferenceMethod):
                                    # new_pars=perturbation_output[1],
                                    ))
 
-
-
-
-
+        debug_info = None
         return self.get_parameters(self.model), distance, weight, counter, debug_info
 
     def _compute_accepted_cov_mats(self, covFactor, new_cov_mats):
