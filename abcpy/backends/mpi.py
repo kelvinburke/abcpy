@@ -437,8 +437,11 @@ class BackendMPIWorker(Backend):
             else:
                 res = func(data_item)
         except Exception as e:
-            msg = "Exception occured while calling the map function {}: ".format(func.__name__)
-            res = type(e)(msg + str(e))
+            try:
+                msg = "Exception occured while calling the map function {}: ".format(func.__name__)
+                raise type(e)(msg) from e
+            except Exception as e:
+                return e
         return res
 
     def __worker_run(self):
