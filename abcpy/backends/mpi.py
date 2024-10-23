@@ -2,6 +2,7 @@
 import logging
 import pickle
 import time
+import traceback
 
 import cloudpickle
 import numpy as np
@@ -439,7 +440,7 @@ class BackendMPIWorker(Backend):
         except Exception as e:
             try:
                 msg = "Exception occured while calling the map function {}: ".format(func.__name__)
-                raise type(e)(msg) from e
+                raise type(e)(msg + '\n' + traceback.format_exc()) from e
             except Exception as e:
                 return e
         return res
